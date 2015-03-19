@@ -54,12 +54,11 @@ SOFTWARE.
 </script>
 
 <script type="text/x-red" data-help-name="later">
-   <p>Node that sends <b>msg.payload</b> on the schedule supplied in <b>msg.later</b>.</p>
-   <p>The schedule can be any serialised object that is accepted by <b>later.js</b>. If the 
-   schedule can be parsed by JSON.parse is it used as a schedule object, otherwise if a 
-   string it is passed to <b>later.parse.text()</b>.</p>
-   If no schedule is supplied the msg.payload is sent straight out. In the case where the 
+   <p>Node that sends <b>msg</b> on the schedule supplied in the string <b>msg.later</b> 
+   or the setting <b>schedule</b>.</p>
+   <p>The schedule is any string that can be parsed by <b>later.parse.text()</b>.</p>
+   <p>The setting <b>schedule</b> is used in preference to anything in <b>msg.later</b>. 
+   If no schedule is supplied the <b>msg</b> is sent straight out. In the case where the 
     schedule is invalid, node.warn will be called with the offending schedule and the 
     processing continues as if there was no schedule.</p>
-    <p>The setting <b>schedule</b> is used in preference to anything in <b>msg.later<b></p>
 </script>

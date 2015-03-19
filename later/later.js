@@ -25,6 +25,8 @@ SOFTWARE.
 */
 
 module.exports = function(RED) {
+    var later = require('later');
+
     function laterNode(config) {
         RED.nodes.createNode(this,config);
         
@@ -33,7 +35,24 @@ module.exports = function(RED) {
         var node = this;
 
         node.on('input', function(msg) {
-            node.send(msg);
+            //Set a local var for this schedeule...
+            var schedStr = (node.schedule.length > 0)?node.schedule:msg.later;
+            //If we have a string, try and parse it, otherwise just send msg on
+            if (schedStr && schedStr.length > 0) {
+                var thisSched = later.parse.text(schedStr, true);
+                //If there are errors parsing this, send the msg, and warn.
+                if (thisSched.error > -1) {
+                    node.warn("Later could not parse : <" + schedStr + "> the error is at : " + thisSched.error);
+                    node.send(msg);
+                }
+                //Later could parse it, so set it to go once. Send the msg once the timer fires.
+                else {
+                    later.setTimeout(function() { node.send(msg); }, thisSched);
+                };
+            }
+            else {
+                node.send(msg);
+            };
         }); 
     }
 
