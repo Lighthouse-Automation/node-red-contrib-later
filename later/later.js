@@ -23,3 +23,19 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+
+module.exports = function(RED) {
+    function laterNode(config) {
+        RED.nodes.createNode(this,config);
+        
+        this.name = config.name;
+        this.schedule = config.schedule;
+        var node = this;
+
+        node.on('input', function(msg) {
+            node.send(msg.payload);
+        }); 
+    }
+
+    RED.nodes.registerType("later", laterNode);
+}

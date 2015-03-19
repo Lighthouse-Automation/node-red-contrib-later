@@ -1,13 +1,22 @@
 {
-    "name"         : "node-red-contrib-later",
-    "version"      : "0.0.1",
-    "description"  : "A node red node for triggering using later.js",
-    "dependencies": {
+    "name"          : "node-red-contrib-later",
+    "version"       : "0.0.1",
+    "description"   : "A node red node for triggering using later.js",
+    "author"        : {
+                        "name" : "Dean Sellers",
+                        "email" : "dean@lighthouseautomation.com.au"
     },
-    "keywords": [ "node-red" ],
-    "node-red"     : {
-        "nodes": {
-            "later": "later/later.js"
+    "repository"    : {
+                        "type" : "git",
+                        "url"  : "https://github.com/Lighthouse-Automation/node-red-contrib-later.git"
+    },
+    "dependencies"  : {
+                        "later" : ">=1.1.6"
+    },
+    "keywords"      : [ "node-red" ],
+    "node-red"      : {
+        "nodes"     : {
+                        "later": "later/later.js"
         }
     }
 }
