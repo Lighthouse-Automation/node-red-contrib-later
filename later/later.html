@@ -24,14 +24,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 -->
 
+<script src='node-red-contrib-later/later.min.js'></script>
+
 <script type="text/javascript">
     RED.nodes.registerType('later',{
         category: 'function',
         color:"#E6E0F8",
         defaults: {
             name:{value:""},
-            schedule:{value:""}
-        },
+            schedule:{value:"", validate: function(v) {
+                return (v.length > 0) && (later.parse.text(v).error < 0); }}
+            },
         inputs: 1,
         outputs: 1,
         icon: "timer.png",

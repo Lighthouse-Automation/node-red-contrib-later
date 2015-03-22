@@ -26,6 +26,8 @@ SOFTWARE.
 
 module.exports = function(RED) {
     var later = require('later');
+    var fs = require('fs');
+    var path = require('path');
 
     function laterNode(config) {
         RED.nodes.createNode(this,config);
@@ -57,4 +59,14 @@ module.exports = function(RED) {
     }
 
     RED.nodes.registerType("later", laterNode);
+
+    RED.httpAdmin.get('/node-red-contrib-later/:file', function(req, res){
+        fs.readFile(path.resolve(__dirname, "../node_modules/later/" + req.params.file),function(err,data) {
+            if (err) {
+                res.send("<html><head></head><body>Error reading the file: <br />" + req.params.file + "</body></html>");
+            } else {
+                res.set('Content-Type', 'text/javascript').send(data);
+            }
+        });
+    });
 }
