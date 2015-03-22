@@ -27,21 +27,42 @@ SOFTWARE.
 <script src='node-red-contrib-later/later.min.js'></script>
 
 <script type="text/javascript">
+    var schedValidate = function(val) {
+        return ((val.length > 0) && (later.parse.text(val).error < 0));
+    }
     RED.nodes.registerType('later',{
         category: 'function',
         color:"#E6E0F8",
         defaults: {
             name:{value:""},
-            schedule:{value:"", validate: function(v) {
-                return (v.length > 0) && (later.parse.text(v).error < 0); }}
-            },
+            schedule:{value:"", validate: function(v) { return schedValidate(v); }}
+        },
         inputs: 1,
         outputs: 1,
         icon: "timer.png",
         label: function() {
             return this.name || "Later";
         },
-
+        oneditprepare: function() {
+            var updateOptions = function() {
+                if(!schedValidate($("#node-input-schedule").val())) {
+                    $("#occur-tip").hide();
+                }
+                else {
+                    var thisSched = later.parse.text($("#node-input-schedule").val());
+                    var listItems = later.schedule(thisSched).next(5);
+                    var listStr = "";
+                    for (var i in listItems) {
+                        listStr += "<li>" + listItems[i] + "</li>";
+                    };
+                    $("#occur-list").empty().append(listStr);
+                    $("#occur-count").text(listItems.length.toString());
+                    $("#occur-tip").show();
+                };
+            };
+            updateOptions();
+            $("#node-input-schedule").change(updateOptions);
+        }
     });
 </script>
 
@@ -53,6 +74,10 @@ SOFTWARE.
     <div class="form-row">
         <label for="node-input-schedule"><i class="fa fa-clock-o"></i> Schedule</label>
         <input type="text" id="node-input-schedule" placeholder="String for later.parse.text()">
+    </div>
+    <div class="form-tips hidden" id="occur-tip">
+        <p>The next <span id="occur-count">0</span> occurences are</p>
+        <ol id="occur-list"></ol>
     </div>
 </script>
 
