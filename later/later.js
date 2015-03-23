@@ -36,6 +36,27 @@ module.exports = function(RED) {
         this.schedule = config.schedule;
         var node = this;
 
+        var runSched = function(msg, sched) {
+            //Add a 'later' object to the msg to keep track of stuff
+            if (!msg.later) msg.later = {};
+            //Initialise the count, if necessary
+            if (!msg.later.count) msg.later.count = 0;
+            //Only do anything if the schedule has a next event
+            if (later.schedule(sched).next(1)) {
+                //Inc count and start a timer running
+                msg.later.count++;
+                later.setTimeout(function() {
+                    //Send out the message
+                    node.send(msg);
+                    //Run this again to schedule the next event
+                    runSched(msg, sched);
+                }, sched);
+            };
+        }
+
+        //Set later to use the local time rather than UTC
+        later.date.localTime();
+
         node.on('input', function(msg) {
             //Set a local var for this schedeule...
             var schedStr = (node.schedule.length > 0)?node.schedule:msg.later;
@@ -49,7 +70,7 @@ module.exports = function(RED) {
                 }
                 //Later could parse it, so set it to go once. Send the msg once the timer fires.
                 else {
-                    later.setTimeout(function() { node.send(msg); }, thisSched);
+                    runSched(msg, thisSched);
                 };
             }
             else {
