@@ -52,6 +52,7 @@ SOFTWARE.
                 var thisSched = later.parse.text(thisVal);
                 if(thisSched.error !== -1) {
                     $("#occur-tip").hide();
+                    $("#previous-tip").hide();
                     $("#error-good").text(thisVal.substring(0, thisSched.error - 1));
                     $("#error-bad").text(thisVal.substring(thisSched.error, thisVal.length));
                     $("#error-tip").show();
@@ -59,13 +60,21 @@ SOFTWARE.
                 else {
                     $("#error-tip").hide();
                     var listItems = later.schedule(thisSched).next(5);
-                    var listStr = "";
-                    for (var i in listItems) {
-                        listStr += "<li>" + listItems[i] + "</li>";
+                    if (!listItems) {
+                        $("#occur-tip").hide();
+                        $("#previous-run").text(later.schedule(thisSched).prev(1));
+                        $("#previous-tip").show();
+                    }
+                    else {
+                        $("#previous-tip").hide();
+                        var listStr = "";
+                        for (var i in listItems) {
+                            listStr += "<li>" + listItems[i] + "</li>";
+                        };
+                        $("#occur-list").empty().append(listStr);
+                        $("#occur-count").text(listItems.length.toString());
+                        $("#occur-tip").show();                        
                     };
-                    $("#occur-list").empty().append(listStr);
-                    $("#occur-count").text(listItems.length.toString());
-                    $("#occur-tip").show();
                 };
             };
             updateOptions();
@@ -86,6 +95,10 @@ SOFTWARE.
     <div class="form-tips hidden" id="occur-tip">
         <p>The next <span id="occur-count">0</span> occurences are</p>
         <ol id="occur-list"></ol>
+    </div>
+    <div class="form-tips hidden" id="previous-tip">
+        <p style="color:red">This schedule only runs in the past!</p>
+        <p>It would have last run on <span id="previous-run"></span></p>
     </div>
     <div class="form-tips hidden" id="error-tip">
         <p>Parsing your string results in an error.</p>
