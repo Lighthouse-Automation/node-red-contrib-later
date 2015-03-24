@@ -28,7 +28,7 @@ SOFTWARE.
 
 <script type="text/javascript">
     var schedValidate = function(val) {
-        return ((val.length > 0) && (later.parse.text(val).error < 0));
+        return ((val.length === 0) || (later.parse.text(val).error < 0));
     }
     //Set later to use local time rather than UTC
     later.date.localTime();
