@@ -29,37 +29,60 @@ module.exports = function(RED) {
     var fs = require('fs');
     var path = require('path');
 
+
     function laterNode(config) {
         RED.nodes.createNode(this,config);
         
         this.name = config.name;
         this.schedule = config.schedule;
         var node = this;
+        //Global object to keep track of running timers
+        var runningSchedules = {};
 
         var runSched = function(msg, sched) {
-            //Add a 'later' object to the msg to keep track of stuff
-            if (!msg.later) msg.later = {};
-            //Initialise the count, if necessary
-            if (!msg.later.count) msg.later.count = 0;
             //Only do anything if the schedule has a next event
             if (later.schedule(sched).next(1)) {
-                //Inc count and start a timer running
-                msg.later.count++;
-                later.setTimeout(function() {
-                    //Send out the message
-                    node.send(msg);
+                runningSchedules[msg.later.id] = later.setTimeout(function() {
                     //Run this again to schedule the next event
+                    /*IMPORTANT that this is done before the message is sent
+                      to avoid a race condition in the case this message triggers
+                      a downstream node to cancel the flow*/
                     runSched(msg, sched);
+                    //Send out the message
+                    msg.later.count++;
+                    node.send(msg);
                 }, sched);
+//                node.log('Started timer for schedule : ' + msg.later.id);
+            }
+            else {
+                //This schedule has finished, remove any references to previous timers
+//                node.log('Schedule has ended : ' + msg.later.id);
+                delete runningSchedules[msg.later.id];
             };
-        }
+        };
 
         //Set later to use the local time rather than UTC
         later.date.localTime();
 
         node.on('input', function(msg) {
-            //Set a local var for this schedeule...
-            var schedStr = (node.schedule.length > 0)?node.schedule:msg.later;
+            //Add a 'later' object to the msg for downstream nodes to use, or not
+            if (!msg.later) {
+                msg.later = {};
+                //Generate a kind of unique number for the 'later' id.
+                msg.later.id = (3+Math.random()*6763504675).toString(16);
+            }
+            //Initialise the count, if necessary
+            if (!msg.later.count) msg.later.count = 0;
+            //If this message has no (or null) payload, stop any running timers
+            //remove this schedule from the list, and do no further processing
+            if (!msg.payload && runningSchedules[msg.later.id]) {
+                node.log("Removing scheduled timer : " + msg.later.id);
+                runningSchedules[msg.later.id].clear();
+                delete runningSchedules[msg.later.id];
+                return;
+            }
+            //Set a local var for this schedeule string
+            var schedStr = (node.schedule.length > 0)?node.schedule:msg.payload.later;
             //If we have a string, try and parse it, otherwise just send msg on
             if (schedStr && schedStr.length > 0) {
                 var thisSched = later.parse.text(schedStr, true);
@@ -70,14 +93,28 @@ module.exports = function(RED) {
                 }
                 //Later could parse it, so set it to go once. Send the msg once the timer fires.
                 else {
+//                    node.log("Got a valid schedule, starting it running : " + schedStr);
                     runSched(msg, thisSched);
                 };
             }
             else {
+//                node.log("No valid schedule, sending msg through.")
                 node.send(msg);
             };
-        }); 
-    }
+        });
+        //Listener for the close event, clear timers, tidy up
+        node.on('close', function(done) {
+//            node.log("Close called, emptying running timers.");
+            for (var id in runningSchedules) {
+                if (runningSchedules.hasOwnProperty(id)) {
+//                    node.log("Removing timer : " + id);
+                    runningSchedules[id].clear();
+                }
+            }
+            runningSchedules = {};
+            done();
+        });
+    };
 
     RED.nodes.registerType("later", laterNode);
 
