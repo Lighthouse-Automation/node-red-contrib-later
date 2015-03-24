@@ -28,6 +28,7 @@ module.exports = function(RED) {
     var later = require('later');
     var fs = require('fs');
     var path = require('path');
+    var debug = require('debug')('later');
 
 
     function laterNode(config) {
@@ -38,6 +39,8 @@ module.exports = function(RED) {
         var node = this;
         //Global object to keep track of running timers
         var runningSchedules = {};
+
+        debug("New node created : %s", (node.name.length > 0)?node.name:'Later');
 
         var runSched = function(msg, sched) {
             //Only do anything if the schedule has a next event
@@ -52,14 +55,23 @@ module.exports = function(RED) {
                     msg.later.count++;
                     node.send(msg);
                 }, sched);
-//                node.log('Started timer for schedule : ' + msg.later.id);
+                debug('Started timer for schedule : ' + msg.later.id);
             }
             else {
                 //This schedule has finished, remove any references to previous timers
-//                node.log('Schedule has ended : ' + msg.later.id);
+                debug('Schedule has ended : ' + msg.later.id);
                 delete runningSchedules[msg.later.id];
             };
         };
+
+        var parsePayloadForLater = function(payload) {
+            var res = "";
+
+            if(typeof payload === 'object' && typeof payload.later === 'string') {
+                res = payload.later;
+            }
+            return res;
+        }
 
         //Set later to use the local time rather than UTC
         later.date.localTime();
@@ -76,13 +88,13 @@ module.exports = function(RED) {
             //If this message has no (or null) payload, stop any running timers
             //remove this schedule from the list, and do no further processing
             if (!msg.payload && runningSchedules[msg.later.id]) {
-                node.log("Removing scheduled timer : " + msg.later.id);
+                debug("Removing scheduled timer : " + msg.later.id);
                 runningSchedules[msg.later.id].clear();
                 delete runningSchedules[msg.later.id];
                 return;
             }
             //Set a local var for this schedeule string
-            var schedStr = (node.schedule.length > 0)?node.schedule:msg.payload.later;
+            var schedStr = (node.schedule.length > 0)?node.schedule:parsePayloadForLater(msg.payload);
             //If we have a string, try and parse it, otherwise just send msg on
             if (schedStr && schedStr.length > 0) {
                 var thisSched = later.parse.text(schedStr, true);
@@ -93,21 +105,21 @@ module.exports = function(RED) {
                 }
                 //Later could parse it, so set it to go once. Send the msg once the timer fires.
                 else {
-//                    node.log("Got a valid schedule, starting it running : " + schedStr);
+                    debug("Got a valid schedule, starting it running : " + schedStr);
                     runSched(msg, thisSched);
                 };
             }
             else {
-//                node.log("No valid schedule, sending msg through.")
+                debug("No valid schedule, sending msg through.")
                 node.send(msg);
             };
         });
         //Listener for the close event, clear timers, tidy up
         node.on('close', function(done) {
-//            node.log("Close called, emptying running timers.");
+            debug("Close called, emptying running timers.");
             for (var id in runningSchedules) {
                 if (runningSchedules.hasOwnProperty(id)) {
-//                    node.log("Removing timer : " + id);
+                    debug("Removing timer : " + id);
                     runningSchedules[id].clear();
                 }
             }
