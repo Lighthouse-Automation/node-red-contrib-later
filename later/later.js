@@ -24,67 +24,67 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-module.exports = function(RED) {
-    var later = require('later');
-    var fs = require('fs');
-    var path = require('path');
-    var debug = require('debug')('later');
+//For jslint linter
+/*jslint node: true */
+"use strict";
+
+module.exports = function (RED) {
+    var later = require('later'),
+        fs = require('fs'),
+        path = require('path'),
+        debug = require('debug')('later');
 
 
     function laterNode(config) {
-        RED.nodes.createNode(this,config);
-        
+        RED.nodes.createNode(this, config);
+
         this.name = config.name;
         this.schedule = config.schedule;
-        var node = this;
-        //Global object to keep track of running timers
-        var runningSchedules = {};
+        var node = this,
+            //Global object to keep track of running timers
+            runningSchedules = {},
+            //Function that does the work of running a schedule
+            runSched = function (msg, sched) {
+                //Only do anything if the schedule has a next event
+                if (later.schedule(sched).next(1)) {
+                    runningSchedules[msg.later.id] = later.setTimeout(function () {
+                        //Run this again to schedule the next event
+                        /*IMPORTANT that this is done before the message is sent
+                          to avoid a race condition in the case this message triggers
+                          a downstream node to cancel the flow*/
+                        runSched(msg, sched);
+                        //Send out the message
+                        msg.later.count += 1;
+                        node.send(msg);
+                    }, sched);
+                    debug('Started timer for schedule : ' + msg.later.id);
+                } else {
+                    //This schedule has finished, remove any references to previous timers
+                    debug('Schedule has ended : ' + msg.later.id);
+                    delete runningSchedules[msg.later.id];
+                }
+            },
 
-        debug("New node created : %s", (node.name.length > 0)?node.name:'Later');
+            parsePayloadForLater = function (payload) {
+                var res = "";
 
-        var runSched = function(msg, sched) {
-            //Only do anything if the schedule has a next event
-            if (later.schedule(sched).next(1)) {
-                runningSchedules[msg.later.id] = later.setTimeout(function() {
-                    //Run this again to schedule the next event
-                    /*IMPORTANT that this is done before the message is sent
-                      to avoid a race condition in the case this message triggers
-                      a downstream node to cancel the flow*/
-                    runSched(msg, sched);
-                    //Send out the message
-                    msg.later.count++;
-                    node.send(msg);
-                }, sched);
-                debug('Started timer for schedule : ' + msg.later.id);
-            }
-            else {
-                //This schedule has finished, remove any references to previous timers
-                debug('Schedule has ended : ' + msg.later.id);
-                delete runningSchedules[msg.later.id];
+                if (typeof payload === 'object' && typeof payload.later === 'string') {
+                    res = payload.later;
+                }
+                return res;
             };
-        };
 
-        var parsePayloadForLater = function(payload) {
-            var res = "";
-
-            if(typeof payload === 'object' && typeof payload.later === 'string') {
-                res = payload.later;
-            }
-            return res;
-        }
-
-        //Set later to use the local time rather than UTC
-        later.date.localTime();
-
-        node.on('input', function(msg) {
+        node.on('input', function (msg) {
             //Add a 'later' object to the msg for downstream nodes to use, or not
             if (!msg.later) {
                 msg.later = {};
                 //Generate a kind of unique number for the 'later' id.
-                msg.later.id = (3+Math.random()*6763504675).toString(16);
+                msg.later.id = (3 + Math.random() * 6763504675).toString(16);
             }
             //Initialise the count, if necessary
-            if (!msg.later.count) msg.later.count = 0;
+            if (!msg.later.count) {
+                msg.later.count = 0;
+            }
             //If this message has no (or null) payload, stop any running timers
             //remove this schedule from the list, and do no further processing
             if (!msg.payload && runningSchedules[msg.later.id]) {
@@ -94,30 +94,29 @@ module.exports = function(RED) {
                 return;
             }
             //Set a local var for this schedeule string
-            var schedStr = (node.schedule.length > 0)?node.schedule:parsePayloadForLater(msg.payload);
+            var schedStr = (node.schedule.length > 0) ? node.schedule : parsePayloadForLater(msg.payload),
+                thisSched = later.parse.text(schedStr, true);
             //If we have a string, try and parse it, otherwise just send msg on
             if (schedStr && schedStr.length > 0) {
-                var thisSched = later.parse.text(schedStr, true);
                 //If there are errors parsing this, send the msg, and warn.
                 if (thisSched.error > -1) {
                     node.warn("Later could not parse : <" + schedStr + "> the error is at : " + thisSched.error);
                     node.send(msg);
-                }
-                //Later could parse it, so set it to go once. Send the msg once the timer fires.
-                else {
+                } else {
+                    //Later could parse it, so set it to go once. Send the msg once the timer fires.
                     debug("Got a valid schedule, starting it running : " + schedStr);
                     runSched(msg, thisSched);
-                };
-            }
-            else {
-                debug("No valid schedule, sending msg through.")
+                }
+            } else {
+                debug("No valid schedule, sending msg through.");
                 node.send(msg);
-            };
+            }
         });
         //Listener for the close event, clear timers, tidy up
-        node.on('close', function(done) {
+        node.on('close', function (done) {
+            var id;
             debug("Close called, emptying running timers.");
-            for (var id in runningSchedules) {
+            for (id in runningSchedules) {
                 if (runningSchedules.hasOwnProperty(id)) {
                     debug("Removing timer : " + id);
                     runningSchedules[id].clear();
@@ -126,12 +125,18 @@ module.exports = function(RED) {
             runningSchedules = {};
             done();
         });
-    };
+        debug("New node created : %s", (node.name.length > 0) ? node.name : 'Later');
+    }
 
+    //Set later to use the local time rather than UTC
+    later.date.localTime();
+
+    //Register the node creation fn with RED
     RED.nodes.registerType("later", laterNode);
 
-    RED.httpAdmin.get('/node-red-contrib-later/:file', function(req, res){
-        fs.readFile(path.resolve(__dirname, "../node_modules/later/" + req.params.file),function(err,data) {
+    //Add a route to the 'later.js' instance installed with this node, so the html file can use it
+    RED.httpAdmin.get('/node-red-contrib-later/:file', function (req, res) {
+        fs.readFile(path.resolve(__dirname, "../node_modules/later/" + req.params.file), function (err, data) {
             if (err) {
                 res.send("<html><head></head><body>Error reading the file: <br />" + req.params.file + "</body></html>");
             } else {
@@ -139,4 +144,4 @@ module.exports = function(RED) {
             }
         });
     });
-}
+};
