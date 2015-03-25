@@ -49,6 +49,12 @@ SOFTWARE.
         oneditprepare: function() {
             var updateOptions = function() {
                 var thisVal = $("#node-input-schedule").val();
+                if (thisVal.length === 0) {
+                    $("#occur-tip").hide();
+                    $("#previous-tip").hide();
+                    $("#error-tip").hide();
+                    return;
+                }
                 var thisSched = later.parse.text(thisVal);
                 if(thisSched.error !== -1) {
                     $("#occur-tip").hide();
