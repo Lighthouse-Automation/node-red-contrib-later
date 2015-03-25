@@ -114,13 +114,5 @@ SOFTWARE.
 </script>
 
 <script type="text/x-red" data-help-name="later">
-   <p>Node that sends <b>msg</b> on the schedule supplied in the string <b>msg.later</b> 
-   or the setting <b>schedule</b>.</p>
-   <p>The schedule is any string that can be parsed by <b>later.parse.text()</b>.</p>
-   <p>The setting <b>schedule</b> is used in preference to anything in <b>msg.later</b>. 
-   If no schedule is supplied the <b>msg</b> is sent straight out. In the case where the 
-    schedule is invalid, node.warn will be called with the offending schedule and the 
-    processing continues as if there was no schedule.</p>
-    <p>Examples of schedule strings can be found in the  
-    <a href="http://bunkat.github.io/later/parsers.html#text">documentation for later.js</a> .</p>
+   <p>Node that sends <b>msg</b> on the string schedule supplied as parsed by <b>later.parse.text()</b>.</p><p>The schedule string set in the <b>Schedule</b> property is used in preference to a string sent as the <b>later</b> property in <b>msg.payload</b> if the payload is an object type.</p><p>If no schedule is supplied the <b>msg</b> is sent straight out. In the case where the schedule is invalid, <b>node.warn()</b> will be called with the offending schedule and the processing continues as if there was no schedule.</p><p>Examples of schedule strings can be found in the <a href="http://bunkat.github.io/later/parsers.html#text" target="_new">documentation for later.js</a> .</p><p>There is probably more documentation on the <a href="https://github.com/Lighthouse-Automation/node-red-contrib-later" target="_new">github repository for this node</a>.</p>
 </script>
