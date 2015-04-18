@@ -1,6 +1,7 @@
 {
   "name": "node-red-contrib-later",
-  "version": "0.0.4",
+  "version": "0.0.5",
+  "license" : "MIT",
   "description": "A node red node for triggering using later.js",
   "author": {
     "name": "Dean Sellers",
