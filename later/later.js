@@ -136,7 +136,7 @@ module.exports = function (RED) {
 
     //Add a route to the 'later.js' instance installed with this node, so the html file can use it
     RED.httpAdmin.get('/node-red-contrib-later/:file', function (req, res) {
-        fs.readFile(path.resolve(__dirname, "../node_modules/later/" + req.params.file), function (err, data) {
+        fs.readFile(path.resolve(__dirname, "../../later/" + req.params.file), function (err, data) {
             if (err) {
                 res.send("<html><head></head><body>Error reading the file: <br />" + req.params.file + "</body></html>");
             } else {
