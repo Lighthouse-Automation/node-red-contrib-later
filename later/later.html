@@ -28,10 +28,12 @@ SOFTWARE.
 
 <script type="text/javascript">
     var schedValidate = function(val) {
-        return ((val.length === 0) || (later.parse.text(val).error < 0));
+        return ((val.length === 0) || (later.version && (later.parse.text(val).error < 0)));
     }
     //Set later to use local time rather than UTC
-    later.date.localTime();
+    if (later.version) {
+        later.date.localTime();
+    }
 
     RED.nodes.registerType('later',{
         category: 'function',
@@ -48,23 +50,34 @@ SOFTWARE.
         },
         oneditprepare: function() {
             var updateOptions = function() {
+                if (!later.version) {
+                    $("#occur-tip").hide();
+                    $("#previous-tip").hide();
+                    $("#error-tip").hide();
+                    $('#error-no-parser').show();
+                    $('#error-no-parser-error').text(later.get_error);
+                    return;
+                }
                 var thisVal = $("#node-input-schedule").val();
                 if (thisVal.length === 0) {
                     $("#occur-tip").hide();
                     $("#previous-tip").hide();
                     $("#error-tip").hide();
+                    $('#error-no-parser').hide();
                     return;
                 }
                 var thisSched = later.parse.text(thisVal);
                 if(thisSched.error !== -1) {
                     $("#occur-tip").hide();
                     $("#previous-tip").hide();
+                    $('#error-no-parser').hide();
                     $("#error-good").text(thisVal.substring(0, thisSched.error - 1));
                     $("#error-bad").text(thisVal.substring(thisSched.error, thisVal.length));
                     $("#error-tip").show();
                 }
                 else {
                     $("#error-tip").hide();
+                    $('#error-no-parser').hide();
                     var listItems = later.schedule(thisSched).next(5);
                     if (!listItems) {
                         $("#occur-tip").hide();
@@ -111,6 +124,10 @@ SOFTWARE.
         <p><span id="error-good">good</span>
         <span id="error-bad" style="color:red">bad</span>.</p>
         <p>See the <i><a href="http://bunkat.github.io/later/parsers.html#text" target="_new">syntax guide</a></i> for more details.</p>
+    </div>
+    <div class="form-tips hidden" id="error-no-parser">
+        <p>The later parser hasn't loaded from the server, the reason could be;</p>
+        <p><span id="error-no-parser-error" style="color:red">bad</span>.</p>
     </div>
 </script>
 

@@ -136,12 +136,26 @@ module.exports = function (RED) {
 
     //Add a route to the 'later.js' instance installed with this node, so the html file can use it
     RED.httpAdmin.get('/node-red-contrib-later/:file', function (req, res) {
-        fs.readFile(path.resolve(__dirname, "../node_modules/later/" + req.params.file), function (err, data) {
+        var laterDir = false;
+        try {
+            laterDir = path.dirname(require.resolve('later'));
+        }
+        catch(e) {
+            debug("'Later' node path not resolved - " + e.name + ':' + e.message);
+        }
+        fs.readFile(path.join(laterDir, req.params.file), function (err, data) {
             if (err) {
-                res.send("<html><head></head><body>Error reading the file: <br />" + req.params.file + "</body></html>");
+                /* For some reason we can't load the parser for the editor....
+                Send some dummy script for the html, basically DON'T CRASH THE EDITOR */
+                debug('Could not serve later :' + err.message);
+                res.set('Content-Type', 'text/javascript').send(
+                    'later = function() {return { get_error: "' + err.message + '"};}();');
             } else {
+                debug('Later loaded from :' + laterDir);
                 res.set('Content-Type', 'text/javascript').send(data);
             }
         });
     });
+    //Debug output now we are loaded
+    debug("Later node loaded....");
 };
